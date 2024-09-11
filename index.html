@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MathComigo</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .container {
+      text-align: center;
+      background-color: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.1);
+      display: none;
+    }
+    .active {
+      display: block;
+    }
+    .logo {
+      width: 150px;
+      margin-bottom: 20px;
+    }
+    h1 {
+      color: #333;
+    }
+    .btn {
+      background-color: #0f8031;
+      color: white;
+      padding: 10px;
+      margin: 5px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .btn:hover {
+      background-color: #0b6024;
+    }
+    .question, .scoreboard, .ranking {
+      margin-top: 20px;
+      font-size: 20px;
+      color: #333;
+    }
+    .answers {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 20px;
+    }
+    .answer-btn {
+      background-color: #c17710;
+      border: none;
+      border-radius: 10px;
+      color: white;
+      font-size: 18px;
+      padding: 15px;
+      width: 100px;
+      transition: transform 0.1s ease;
+    }
+    .answer-btn:active {
+      transform: translateY(4px);
+    }
+    .answer-btn:hover {
+      background-color: #0f2661;
+      cursor: pointer;
+    }
+    .emoji-btn {
+      font-size: 30px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    .emoji-btn:hover {
+      background-color: #e0e0e0;
+    }
+    .ranking-list {
+      text-align: left;
+      margin: 20px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Tela de Cadastro -->
+  <div id="registration-screen" class="container active">
+    <img src="https://i.pinimg.com/originals/3d/e9/a9/3de9a9a1e998b412903375dfef7d8869.jpg" alt="Logo MathComigo" class="logo">
+    <h1>Cadastro de Jogador</h1>
+    <input type="text" id="player-name" placeholder="Digite seu nome">
+    <div id="emoji-selection">
+      <button class="emoji-btn" data-emoji="😊">😊</button>
+      <button class="emoji-btn" data-emoji="😎">😎</button>
+      <button class="emoji-btn" data-emoji="😅">😅</button>
+      <button class="emoji-btn" data-emoji="🥳">🥳</button>
+    </div>
+    <button class="btn" id="start-game-btn">Começar Jogo</button>
+  </div>
+
+  <!-- Tela de Início -->
+  <div id="start-screen" class="container">
+    <h1>Bem-vindo ao MathComigo!</h1>
+    <button class="btn" id="start-btn">Começar</button>
+  </div>
+
+  <!-- Tela de Escolha de Operação -->
+  <div id="select-operation-screen" class="container">
+    <h1>Escolha o que deseja praticar</h1>
+    <button class="btn" id="add-btn">Adição</button>
+    <button class="btn" id="sub-btn">Subtração</button>
+    <button class="btn" id="mul-btn">Multiplicação</button>
+    <button class="btn" id="div-btn">Divisão</button>
+  </div>
+
+  <!-- Tela de Perguntas -->
+  <div id="quiz-screen" class="container">
+    <h1>Resolva os cálculos</h1>
+    <div class="question" id="question">
+      <span id="num1"></span> <span id="operator"></span> <span id="num2"></span> = ?
+    </div>
+    <div class="answers">
+      <button class="answer-btn" id="answer1"></button>
+      <button class="answer-btn" id="answer2"></button>
+      <button class="answer-btn" id="answer3"></button>
+      <button class="answer-btn" id="answer4"></button>
+    </div>
+    <div id="feedback" class="scoreboard"></div>
+  </div>
+
+  <!-- Tela de Ranking -->
+  <div id="ranking-screen" class="container">
+    <h1>Ranking</h1>
+    <div class="ranking-list" id="ranking-list"></div>
+    <button class="btn" id="reset-game-btn">Novo Jogo</button>
+    <button class="btn" id="clear-ranking-btn">Limpar Ranking</button>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      let currentOperation = '+';
+      let correctAnswer;
+      let difficultyLevel = 1;
+      let points = 0;
+      let round = 0;
+      let playerName = '';
+      let playerEmoji = '';
+      const ranking = JSON.parse(localStorage.getItem('ranking')) || [];
+
+      const registrationScreen = document.getElementById("registration-screen");
+      const startScreen = document.getElementById("start-screen");
+      const selectOperationScreen = document.getElementById("select-operation-screen");
+      const quizScreen = document.getElementById("quiz-screen");
+      const rankingScreen = document.getElementById("ranking-screen");
+      const num1Element = document.getElementById("num1");
+      const num2Element = document.getElementById("num2");
+      const operatorElement = document.getElementById("operator");
+      const feedbackElement = document.getElementById("feedback");
+      const buttons = document.querySelectorAll(".answer-btn");
+      const rankingList = document.getElementById("ranking-list");
+
+      // Emojis de seleção
+      document.querySelectorAll(".emoji-btn").forEach(button => {
+        button.addEventListener("click", function() {
+          playerEmoji = this.getAttribute("data-emoji");
+        });
+      });
+
+      // Botão de cadastro
+      document.getElementById("start-game-btn").addEventListener("click", function() {
+        playerName = document.getElementById("player-name").value;
+        if (playerName && playerEmoji) {
+          registrationScreen.classList.remove("active");
+          startScreen.classList.add("active");
+        } else {
+          alert("Por favor, insira seu nome e escolha um emoticon.");
+        }
+      });
+
+      // Botão de início
+      document.getElementById("start-btn").addEventListener("click", function() {
+        startScreen.classList.remove("active");
+        selectOperationScreen.classList.add("active");
+      });
+
+      // Botões de operação
+      document.getElementById("add-btn").addEventListener("click", function() {
+        currentOperation = '+';
+        startQuiz();
+      });
+
+      document.getElementById("sub-btn").addEventListener("click", function() {
+        currentOperation = '-';
+        startQuiz();
+      });
+
+      document.getElementById("mul-btn").addEventListener("click", function() {
+        currentOperation = '*';
+        startQuiz();
+      });
+
+      document.getElementById("div-btn").addEventListener("click", function() {
+        currentOperation = '/';
+        startQuiz();
+      });
+
+      function startQuiz() {
+        selectOperationScreen.classList.remove("active");
+        quizScreen.classList.add("active");
+        generateQuestion();
+      }
+
+      function generateQuestion() {
+        let num1, num2;
+
+        switch (difficultyLevel) {
+          case 1:
+            num1 = Math.floor(Math.random() * 10) + 1;
+            num2 = Math.floor(Math.random() * 10) + 1;
+            break;
+          case 2:
+            num1 = Math.floor(Math.random() * 20) + 10;
+            num2 = Math.floor(Math.random() * 20) + 10;
+            break;
+          case 3:
+            num1 = Math.floor(Math.random() * 50) + 20;
+            num2 = Math.floor(Math.random() * 50) + 20;
+            break;
+          default:
+            num1 = Math.floor(Math.random() * 100) + 50;
+            num2 = Math.floor(Math.random() * 100) + 50;
+        }
+
+        num1Element.textContent = num1;
+        num2Element.textContent = num2;
+        operatorElement.textContent = currentOperation;
+
+        switch (currentOperation) {
+          case '+':
+            correctAnswer = num1 + num2;
+            break;
+          case '-':
+            correctAnswer = num1 - num2;
+            break;
+          case '*':
+            correctAnswer = num1 * num2;
+            break;
+          case '/':
+            correctAnswer = Math.floor(num1 / num2);
+            break;
+        }
+
+        const answers = shuffleArray([correctAnswer, correctAnswer + 1, correctAnswer - 1, correctAnswer + 2]);
+        buttons.forEach((button, index) => {
+          button.textContent = answers[index];
+          button.addEventListener("click", checkAnswer);
+        });
+      }
+
+      function checkAnswer(event) {
+        const selectedAnswer = parseInt(event.target.textContent);
+
+        if (selectedAnswer === correctAnswer) {
+          feedbackElement.textContent = "Correto!";
+          points += 10;
+        } else {
+          feedbackElement.textContent = "Errado! -5 pontos";
+          points -= 5;  // Penalidade por resposta errada
+        }
+
+        round++;
+        if (round >= 5) {
+          endGame();
+        } else {
+          generateQuestion();
+        }
+      }
+
+      function endGame() {
+        quizScreen.classList.remove("active");
+        rankingScreen.classList.add("active");
+
+        ranking.push({ name: playerName, emoji: playerEmoji, points });
+        localStorage.setItem('ranking', JSON.stringify(ranking));
+
+        showRanking();
+      }
+
+      function showRanking() {
+        rankingList.innerHTML = '';
+        ranking.sort((a, b) => b.points - a.points).forEach(player => {
+          rankingList.innerHTML += `<p>${player.emoji} ${player.name}: ${player.points} pontos</p>`;
+        });
+      }
+
+      document.getElementById("reset-game-btn").addEventListener("click", function() {
+        location.reload();
+      });
+
+      // Botão para limpar o ranking
+      document.getElementById("clear-ranking-btn").addEventListener("click", function() {
+        localStorage.removeItem('ranking');
+        ranking.length = 0;
+        showRanking();
+      });
+
+      // Função para embaralhar as respostas
+      function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+      }
+    });
+  </script>
+</body>
+</html>
